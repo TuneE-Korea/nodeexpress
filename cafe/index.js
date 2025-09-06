@@ -17,7 +17,7 @@ app.get("/cafe/staffs", (req, res) => {
   res.json(staffs);
 });
 
-// 조회
+// [조회]
 // 1. 음료 조회
 app.get("/cafe/beverages/:id", (req, res) => {
   const { id } = req.params;
@@ -33,7 +33,7 @@ app.get("/cafe/staffs/:id", (req, res) => {
   res.send(data);
 });
 
-// 생성
+// [생성]
 // 1. 음료 생성
 app.post("/cafe/beverages", (req, res) => {
   const { name, price, kcal } = req.body;
@@ -65,7 +65,7 @@ app.post("/cafe/staffs", (req, res) => {
   res.json(replyOk("성공적으로 추가되었습니다."));
 });
 
-// 삭제
+// [삭제]
 // 1. 음료 삭제
 app.delete("/cafe/beverages/:id", (req, res) => {
   const { id } = req.params;
@@ -89,7 +89,7 @@ app.delete("/cafe/staffs/:id", (req, res) => {
   staffs.splice(+id - 1, 1);
 });
 
-// 수정
+// [수정]
 // 1. 음료 수정
 app.put("/cafe/beverages/:id", (req, res) => {
   const { id } = req.params;
