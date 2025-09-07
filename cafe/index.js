@@ -125,46 +125,49 @@ app.put("/cafe/beverages/:id", async (req, res) => {
   const { id } = req.params;
   const { name, price, kcal } = req.body;
   const { data } = await supabase.from("beverages").select("*");
-
+  const target = data.find((v) => v.id == +id);
   if (!target) {
-    return res.json(replyError(`${id}번째 음료는 존재하지 않습니다.`));
+    return res.json(replyError("없는 ID(음료)입니다."));
   }
-  if (!name) {
+  if (checkEffectivenessName(name)) {
     return res.json(replyError("name을 입력해주세요."));
   }
-  if (!price || price < 0 || isNaN(price)) {
-    return res.json(replyError("price가 유효하지 않습니다."));
+  if (checkEffectivenessNumber(price)) {
+    return res.json(replyError(`${price}가 유효하지 않습니다.`));
   }
-  if (!kcal || kcal < 0 || isNaN(kcal)) {
-    return res.json(replyError("kcal가 유효하지 않습니다."));
+  if (checkEffectivenessKcal(kcal)) {
+    return res.json(replyError(`${kcal}가 유효하지 않습니다.`));
   }
-  target.name = name;
-  target.price = +price;
-  target.kcal = +kcal;
-  res.json(replyOk("정상적으로 변경되었습니다."));
+  const { statusText } = await supabase
+    .from("beverages")
+    .update({ name, price: +price, kcal: +kcal })
+    .eq("id", +id);
+  res.json(replyOk(`${id}번째 음료가 정상적으로 수정되었습니다.`));
 });
 
 // 직원 수정
-app.put("/cafe/staffs/:id", (req, res) => {
+app.put("/cafe/staffs/:id", async (req, res) => {
   const { id } = req.params;
   const { name, age, position } = req.body;
-  target = staffs[+id - 1];
+  const { data } = await supabase.from("staffs").select("*");
+  const target = data.find((v) => v.id == +id);
   if (!target) {
-    return res.json(replyError(`${id}번째 음료는 존재하지 않습니다.`));
+    return res.json(replyError(`${id}번째 직원은 존재하지 않습니다.`));
   }
-  if (!name) {
+  if (checkEffectivenessName(name)) {
     return res.json(replyError("name을 입력해주세요."));
   }
-  if (!age || age < 0 || isNaN(age)) {
-    return res.json(replyError("age가 유효하지 않습니다."));
+  if (checkEffectivenessNumber(age)) {
+    return res.json(replyError(`${inputNumber}가 유효하지 않습니다.`));
   }
-  if (!positions.includes(position)) {
+  if (isInclude(position, positions)) {
     return res.json(replyError(`${position}(이)라는 position은 없습니다.`));
   }
-  target.name = name;
-  target.age = +age;
-  target.position = position;
-  res.json(replyOk("정상적으로 변경되었습니다."));
+  const { statusText } = await supabase
+    .from("staffs")
+    .update({ name, age: +age, position })
+    .eq("id", +id);
+  res.json(replyError(`${id}번째 직원이 정상적으로 수정되었습니다.`));
 });
 
 app.listen(port, () => {
