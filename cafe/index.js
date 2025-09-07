@@ -1,36 +1,50 @@
 const express = require("express");
 const app = express();
 const port = 3000;
-const { beverages, staffs, positions } = require("./data.js");
+// const { beverages, staffs, positions } = require("./data.js");
 const { replyOkget, replyError, replyOk } = require("./format.js");
 
 app.use(express.json()); // JSON 역할 body 파싱
 app.use(express.urlencoded({ extended: true })); // form 형식 데이터 파싱
+const KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1cHh4ZnNzbXBvaGhrZndicXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNjg4MTcsImV4cCI6MjA3MTk0NDgxN30.zOmYg0vFpi8af-6DmNUXaRoKKPRELvESOUAWymzsYHY";
+const URL = "https://cupxxfssmpohhkfwbqtu.supabase.co";
+const { createClient } = require("@supabase/supabase-js");
+const supabase = createClient(URL, KEY);
 
-app.get("/", (req, res) => {
-  res.send("안녕");
+// 음료 전체 조회
+app.get("/cafe/beverages", async (req, res) => {
+  const { data } = await supabase.from("beverages").select("*");
+  !data && res.json(replyError("없는 ID(메뉴)입니다."));
+  res.json(replyOkget(data));
 });
-app.get("/cafe/beverages", (req, res) => {
-  res.json(beverages);
-});
-app.get("/cafe/staffs", (req, res) => {
-  res.json(staffs);
+// 직원 전체 조회
+app.get("/cafe/staffs", async (req, res) => {
+  const { data, error } = await supabase.from("staffs").select("*");
+
+  !data && res.json(replyError("없는 ID(메뉴)입니다."));
+  res.json(replyOkget(data));
 });
 
 // [조회]
-// 1. 음료 조회
-app.get("/cafe/beverages/:id", (req, res) => {
+// 1. ID값으로 음료 조회
+app.get("/cafe/beverages/:id", async (req, res) => {
   const { id } = req.params;
-  data = beverages[+id - 1];
-  !data && res.json(replyError("없는 ID(메뉴)입니다."));
-  res.send(data);
+  const { data } = await supabase.from("beverages").select("*");
+  const target = data[+id - 1];
+  // console.log(target);
+  !target && res.json(replyError("없는 ID(메뉴)입니다."));
+  res.json(replyOkget(target));
 });
-// 2. 직원 조회
-app.get("/cafe/staffs/:id", (req, res) => {
+
+// 2. ID값으로 직원 조회
+app.get("/cafe/staffs/:id", async (req, res) => {
   const { id } = req.params;
-  data = staffs[+id - 1];
-  !data && res.json(replyError("없는 ID(직원)입니다."));
-  res.send(data);
+  const { data } = await supabase.from("staffs").select("*");
+  const target = data[+id - 1];
+  // console.log(target);
+  !target && res.json(replyError("없는 ID(메뉴)입니다."));
+  res.json(replyOkget(target));
 });
 
 // [생성]
