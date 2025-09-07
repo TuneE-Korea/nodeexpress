@@ -1,8 +1,13 @@
 const express = require("express");
 const app = express();
 const port = 3000;
-// const { beverages, staffs, positions } = require("./data.js");
 const { replyOkget, replyError, replyOk } = require("./format.js");
+const {
+  checkEffectivenessName,
+  checkEffectivenessNumber,
+  checkEffectivenessKcal,
+  isInclude,
+} = require("./effectiveness.js");
 
 app.use(express.json()); // JSON 역할 body 파싱
 app.use(express.urlencoded({ extended: true })); // form 형식 데이터 파싱
@@ -10,24 +15,25 @@ const KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1cHh4ZnNzbXBvaGhrZndicXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNjg4MTcsImV4cCI6MjA3MTk0NDgxN30.zOmYg0vFpi8af-6DmNUXaRoKKPRELvESOUAWymzsYHY";
 const URL = "https://cupxxfssmpohhkfwbqtu.supabase.co";
 const { createClient } = require("@supabase/supabase-js");
+const { positions } = require("./data.js");
 const supabase = createClient(URL, KEY);
 
-// 음료 전체 조회
+// 음료 전체목록 조회
 app.get("/cafe/beverages", async (req, res) => {
   const { data } = await supabase.from("beverages").select("*");
   !data && res.json(replyError("없는 ID(메뉴)입니다."));
   res.json(replyOkget(data));
 });
-// 직원 전체 조회
+// 직원 전체목록 조회
 app.get("/cafe/staffs", async (req, res) => {
-  const { data, error } = await supabase.from("staffs").select("*");
+  const { data } = await supabase.from("staffs").select("*");
 
   !data && res.json(replyError("없는 ID(메뉴)입니다."));
   res.json(replyOkget(data));
 });
 
-// [조회]
-// 1. ID값으로 음료 조회
+// 1. [조회]
+// ID값으로 음료 조회
 app.get("/cafe/beverages/:id", async (req, res) => {
   const { id } = req.params;
   const { data } = await supabase.from("beverages").select("*");
@@ -37,7 +43,7 @@ app.get("/cafe/beverages/:id", async (req, res) => {
   res.json(replyOkget(target));
 });
 
-// 2. ID값으로 직원 조회
+// ID값으로 직원 조회
 app.get("/cafe/staffs/:id", async (req, res) => {
   const { id } = req.params;
   const { data } = await supabase.from("staffs").select("*");
@@ -47,68 +53,79 @@ app.get("/cafe/staffs/:id", async (req, res) => {
   res.json(replyOkget(target));
 });
 
-// [생성]
-// 1. 음료 생성
-app.post("/cafe/beverages", (req, res) => {
+// 2. [생성]
+// 음료 생성
+app.post("/cafe/beverages", async (req, res) => {
   const { name, price, kcal } = req.body;
-  if (!name) {
+  if (checkEffectivenessName(name)) {
     return res.json(replyError("name을 입력해주세요."));
   }
-  if (!price || price < 0 || isNaN(price)) {
-    return res.json(replyError("price가 유효하지 않습니다."));
+  if (checkEffectivenessNumber(price)) {
+    return res.json(replyError(`${price}가 유효하지 않습니다.`));
   }
-  if (!kcal || kcal < 0 || isNaN(kcal)) {
-    return res.json(replyError("kcal가 유효하지 않습니다."));
+  if (checkEffectivenessKcal(kcal)) {
+    return res.json(replyError(`${kcal}가 유효하지 않습니다.`));
   }
-  beverages.push({ name, price: +price, kcal: +kcal });
-  res.json(replyOk("성공적으로 추가되었습니다."));
+  const { statusText } = await supabase
+    .from("beverages")
+    .insert({ name, price: +price, kcal: +kcal });
+
+  res.json(replyOk(`${statusText}`));
 });
-// 2. 직원 생성
-app.post("/cafe/staffs", (req, res) => {
+// 직원 생성
+app.post("/cafe/staffs", async (req, res) => {
   const { name, age, position } = req.body;
-  if (!name) {
+  if (checkEffectivenessName(name)) {
     return res.json(replyError("name을 입력해주세요."));
   }
-  if (!age || age < 0 || isNaN(age)) {
-    return res.json(replyError("age가 유효하지 않습니다."));
+  if (checkEffectivenessNumber(age)) {
+    return res.json(replyError(`${inputNumber}가 유효하지 않습니다.`));
   }
-  if (!positions.includes(position)) {
+  if (isInclude(position, positions)) {
     return res.json(replyError(`${position}(이)라는 position은 없습니다.`));
   }
-  staffs.push({ name, age: +age, position });
-  res.json(replyOk("성공적으로 추가되었습니다."));
+  const { statusText } = await supabase
+    .from("staffs")
+    .insert({ name, age: +age, position });
+  res.json(replyOk(`${statusText}`));
 });
 
-// [삭제]
-// 1. 음료 삭제
-app.delete("/cafe/beverages/:id", (req, res) => {
+// 3. [삭제]
+// 음료 삭제
+app.delete("/cafe/beverages/:id", async (req, res) => {
   const { id } = req.params;
-  if (!beverages[+id - 1]) {
+  // 아래 data 선언하는 부분은, "구조 분해 할당"한 것임.
+  // supabase.from("beverages").select("*")가 반환하는 것들에는 여러가지가 잇는데,
+  // 그 중에서 배열을 반환값으로 가지는 data를 선언하기 위해서는 {}로 감싸줘야함.
+  // 따라서 배열이 반환되었으므로, find() 사용가능!
+  // 위에서 { data } 이렇게 선언해왔던 것도 배열을 이용하기 위함이었음.
+  const { data } = await supabase.from("beverages").select("*");
+  const target = data.find((v) => v.id == +id);
+  if (!target) {
     return res.json(replyError("없는 ID(음료)입니다."));
   }
-  res.json(
-    replyOkget(`${beverages[+id - 1].name}이(가) 정상적으로 삭제되었습니다!`)
-  );
-  beverages.splice(+id - 1, 1);
+  const statusText = await supabase.from("beverages").delete().eq("id", +id);
+  res.json(replyOk(statusText));
 });
-// 2. 직원 삭제
-app.delete("/cafe/staffs/:id", (req, res) => {
+// 직원 삭제
+app.delete("/cafe/staffs/:id", async (req, res) => {
   const { id } = req.params;
-  if (!staffs[+id - 1]) {
+  const { data } = await supabase.from("staffs").select("*");
+  const target = data.find((v) => v.id == +id);
+  if (!target) {
     return res.json(replyError("없는 ID(직원)입니다."));
   }
-  res.json(
-    replyOkget(`${staffs[+id - 1].name}이(가) 정상적으로 삭제되었습니다!`)
-  );
-  staffs.splice(+id - 1, 1);
+  const statusText = await supabase.from("staffs").delete().eq("id", +id);
+  res.json(replyOkget(statusText));
 });
 
-// [수정]
-// 1. 음료 수정
-app.put("/cafe/beverages/:id", (req, res) => {
+// 4. [수정]
+// 음료 수정
+app.put("/cafe/beverages/:id", async (req, res) => {
   const { id } = req.params;
   const { name, price, kcal } = req.body;
-  target = beverages[+id - 1];
+  const { data } = await supabase.from("beverages").select("*");
+
   if (!target) {
     return res.json(replyError(`${id}번째 음료는 존재하지 않습니다.`));
   }
@@ -127,7 +144,7 @@ app.put("/cafe/beverages/:id", (req, res) => {
   res.json(replyOk("정상적으로 변경되었습니다."));
 });
 
-// 2. 직원 수정
+// 직원 수정
 app.put("/cafe/staffs/:id", (req, res) => {
   const { id } = req.params;
   const { name, age, position } = req.body;
