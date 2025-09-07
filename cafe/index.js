@@ -11,8 +11,7 @@ const {
 
 app.use(express.json()); // JSON 역할 body 파싱
 app.use(express.urlencoded({ extended: true })); // form 형식 데이터 파싱
-const KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1cHh4ZnNzbXBvaGhrZndicXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNjg4MTcsImV4cCI6MjA3MTk0NDgxN30.zOmYg0vFpi8af-6DmNUXaRoKKPRELvESOUAWymzsYHY";
+const KEY = "something";
 const URL = "https://cupxxfssmpohhkfwbqtu.supabase.co";
 const { createClient } = require("@supabase/supabase-js");
 const { positions } = require("./data.js");
